@@ -17,6 +17,9 @@ class CrudRepository {
                 id :data 
             }
          });
+         if(!response){
+            throw new AppError('Not able to delete the resource',StatusCodes.NOT_FOUND);
+         }
         return response; // returns number of rows deleted
     }
 
