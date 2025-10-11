@@ -57,7 +57,37 @@ async function destroyCity(req, res) {
     }
 }
 
+/**
+ * PATCH :/cities/:id
+ * req-body {name: 'XYZ'}
+ */
+async function updateCity(req, res) {
+    try {
+        const city = await CityService.updateCity({
+            name: req.body.name
+        }, req.params.id);
+        SuccessResponse.data = city;
+        return res
+            .status(StatusCodes.OK)
+            .json(SuccessResponse);
+    } catch (error) {
+        const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
+        const errorResponse = {
+            success: false,
+            message: 'Something went wrong',
+            data: {},
+            error: {
+                statusCode: statusCode,
+                explanation: error.explanation || error.message || 'Unknown error occurred'
+            }
+        };
+        
+        return res.status(statusCode).json(errorResponse);
+    }
+}
+
 module.exports={
     createCity,
     destroyCity,
+    updateCity,
 }
