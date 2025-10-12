@@ -1,5 +1,6 @@
 const {FlightRepository}=require('../repositories');
 
+const {Op}=require('sequelize');
 const {StatusCodes}=require('http-status-codes');
 const AppError=require('../utils/errors/app-error');
 const {validateFlightTimes}=require('../utils/helpers/datatime-helpers');
@@ -61,8 +62,55 @@ async function getFlight(id){
     }
 }
 
+async function getAllFlights(filter){
+    let customFilter={};
+    const endingTripTime=' 23:59:00';
+    let sortFilter=[];
+    //trips=MUM-DEL
+    if(filter.trips){
+        const trips=filter.trips.split('-');
+        customFilter={
+            departureAirportId: trips[0],
+            arrivalAirportId: trips[1]
+        };
+        //TODO :add a check that they are not same
+        if (customFilter.departureAirportId === customFilter.arrivalAirportId) {
+            throw new AppError('Departure and arrival airports cannot be the same', StatusCodes.BAD_REQUEST);
+        }
+    }
+    if(filter.price){
+        [minPrice,maxPrice]=filter.price.split('-');
+        customFilter.price={
+            [Op.between]:[minPrice,(maxPrice==undefined)?20000:maxPrice]
+        };
+    }
+    if(filter.travellers){
+        customFilter.totalSeats={
+            [Op.gte]:filter.travellers
+        };
+    }
+    if(filter.tripDate){
+        customFilter.departureTime={
+            [Op.between]:[filter.tripDate,filter.tripDate + endingTripTime]
+        };
+    }
+    if(filter.sort){
+        const params=filter.sort.split(',');
+        const sortFilters=params.map((param)=>param.split('_'));
+        sortFilter=sortFilters;
+    }
+    try{
+        const flights= await flightRepository.getAllFlights(customFilter);
+        return flights;
+    }catch(error){
+        const appError = new AppError('Cannot fetch flights data', StatusCodes.INTERNAL_SERVER_ERROR);
+        throw appError;
+    }
+}
+
 module.exports={
     createFlight,
     getFlights,
     getFlight,
+    getAllFlights
 }

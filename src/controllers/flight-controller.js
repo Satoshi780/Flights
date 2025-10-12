@@ -107,8 +107,31 @@ async function getFlight(req, res) {
     }
 }
 
+async function getAllFlights(req, res) {
+    try {
+        const filter = req.query;
+        const flights = await FlightService.getAllFlights(filter);
+        SuccessResponse.data = flights;
+        return res
+            .status(StatusCodes.OK)
+            .json(SuccessResponse);
+    } catch (error) {
+        const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
+        const errorResponse = {
+            success: false,
+            message: 'Something went wrong',
+            data: {},
+            error: {
+                statusCode: statusCode,
+                explanation: error.explanation || error.message || 'Unknown error occurred'
+            }
+        };
+        return res.status(statusCode).json(errorResponse);
+    }
+}
 module.exports = {
     createFlight,
     getFlights,
     getFlight,
+    getAllFlights,
 };

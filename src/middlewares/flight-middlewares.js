@@ -4,6 +4,13 @@ const { ErrorResponse } = require('../utils/common');
 const AppError = require('../utils/errors/app-error');
 const {validateFlightTimes} = require('../utils/helpers/datatime-helpers');
 function validateCreateRequest(req, res, next) {
+    // Check if req.body exists
+    if (!req.body) {
+        ErrorResponse.message = 'Request body is required';
+        ErrorResponse.error = new AppError(['Request body not found in the incoming request'], StatusCodes.BAD_REQUEST);
+        return res.status(StatusCodes.BAD_REQUEST).json(ErrorResponse);
+    }
+    
     if(!req.body.flightNumber) {
         ErrorResponse.message = 'flightNumber is required';
         ErrorResponse.error = new AppError(['flightNumber not found in the incoming request'], StatusCodes.BAD_REQUEST);
