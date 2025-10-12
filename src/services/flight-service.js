@@ -1,11 +1,17 @@
 const {FlightRepository}=require('../repositories');
- 
+
 const {StatusCodes}=require('http-status-codes');
 const AppError=require('../utils/errors/app-error');
+const {validateFlightTimes}=require('../utils/helpers/datatime-helpers');
 const flightRepository=new FlightRepository();
 
 async function createFlight(data){
     try{
+        // Validate that departure time is before arrival time
+        if (!validateFlightTimes(data.departureTime, data.arrivalTime)) {
+            throw new AppError('Departure time must be before arrival time', StatusCodes.BAD_REQUEST);
+        }
+        
         const flight= await flightRepository.create(data);
         return flight;
     }catch(error){

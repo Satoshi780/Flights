@@ -2,6 +2,7 @@ const {StatusCodes} = require('http-status-codes');
 
 const { ErrorResponse } = require('../utils/common');
 const AppError = require('../utils/errors/app-error');
+const {validateFlightTimes} = require('../utils/helpers/datatime-helpers');
 function validateCreateRequest(req, res, next) {
     if(!req.body.flightNumber) {
         ErrorResponse.message = 'flightNumber is required';
@@ -41,6 +42,13 @@ function validateCreateRequest(req, res, next) {
     if(!req.body.totalSeats) {
         ErrorResponse.message = 'totalSeats is required';
         ErrorResponse.error = new AppError(['totalSeats not found in the incoming request'], StatusCodes.BAD_REQUEST);
+        return res.status(StatusCodes.BAD_REQUEST).json(ErrorResponse);
+    }
+    
+    // Validate that departure time is before arrival time
+    if (!validateFlightTimes(req.body.departureTime, req.body.arrivalTime)) {
+        ErrorResponse.message = 'Departure time must be before arrival time';
+        ErrorResponse.error = new AppError(['Invalid flight times: departure time must be before arrival time'], StatusCodes.BAD_REQUEST);
         return res.status(StatusCodes.BAD_REQUEST).json(ErrorResponse);
     }
     
