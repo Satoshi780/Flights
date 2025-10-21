@@ -52,19 +52,36 @@ class FlightRepository extends CrudRepository{
     async updateSeats(flightId, seats, dec = true) {
         const transaction = await db.sequelize.transaction();
         try {
-            await db.sequelize.query(addRowLockOnFlights(flightId));
-            const flight = await Flight.findByPk(flightId);
+            // Ensure seats is a positive integer
+            const seatsNum = Number(seats);
+            if (!Number.isFinite(seatsNum) || seatsNum <= 0) {
+                throw new Error('Invalid seats value');
+            }
+
+            // Lock the row and fetch inside the transaction
+            await db.sequelize.query(addRowLockOnFlights(flightId), { transaction });
+            const flight = await Flight.findByPk(flightId, { transaction, lock: transaction.LOCK.UPDATE });
             if (!flight) {
-                throw new Error('Flight not found');
+                const notFound = new Error('Flight not found');
+                notFound.statusCode = 404;
+                throw notFound;
             }
-            
-            if (dec === true || dec === 'true' || dec === 1 || dec === '1') {
-                await flight.decrement('totalSeats', { by: seats }, { transaction });
+
+            const shouldDecrement = (dec === true || dec === 'true' || dec === 1 || dec === '1');
+
+            if (shouldDecrement) {
+                // Prevent going below zero
+                if (flight.totalSeats < seatsNum) {
+                    const err = new Error('Not enough seats to decrement');
+                    err.statusCode = 400;
+                    throw err;
+                }
+                await flight.decrement('totalSeats', { by: seatsNum, transaction });
             } else {
-                await flight.increment('totalSeats', { by: seats }, { transaction });
+                await flight.increment('totalSeats', { by: seatsNum, transaction });
             }
-            
-            // Reload to get the updated values
+
+            // Reload to get the updated values within the transaction
             await flight.reload({ transaction });
             await transaction.commit();
             return flight;

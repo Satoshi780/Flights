@@ -68,6 +68,12 @@ function validateUpdateSeatsRequest(req, res, next) {
         ErrorResponse.error = new AppError(['seats not found in the incoming request'], StatusCodes.BAD_REQUEST);
         return res.status(StatusCodes.BAD_REQUEST).json(ErrorResponse);
     }
+    const seatsNum = Number(req.body.seats);
+    if(!Number.isFinite(seatsNum) || seatsNum <= 0){
+        ErrorResponse.message = 'seats must be a positive number';
+        ErrorResponse.error = new AppError(['Invalid seats value in the incoming request'], StatusCodes.BAD_REQUEST);
+        return res.status(StatusCodes.BAD_REQUEST).json(ErrorResponse);
+    }
     next();
 }
 module.exports = {
