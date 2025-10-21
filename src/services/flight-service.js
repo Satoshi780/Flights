@@ -108,9 +108,21 @@ async function getAllFlights(filter){
     }
 }
 
+
+async function updateSeats(data) {
+    try {
+        const response = await flightRepository.updateSeats(data.flightId, data.seats, data.dec);
+        return response;
+    } catch (error) {
+        const appError = new AppError('Cannot update seats', StatusCodes.INTERNAL_SERVER_ERROR);
+        throw appError;
+    }
+}
+
 module.exports={
     createFlight,
     getFlights,
     getFlight,
-    getAllFlights
+    getAllFlights,
+    updateSeats
 }

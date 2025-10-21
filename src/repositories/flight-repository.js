@@ -2,8 +2,9 @@ const {Sequelize}=require('sequelize');
 
 const CrudRepository=require('./crud-repository');
 const {Flight,Airplane,Airport,City}=require('../models');
+const db=require('../models');
 
-
+const {addRowLockOnFlights}=require('./queries');
 class FlightRepository extends CrudRepository{
     constructor(){
         super(Flight);
@@ -47,6 +48,30 @@ class FlightRepository extends CrudRepository{
         });
         return response;
     }
-}
 
+    async updateSeats(flightId, seats, dec = true) {
+        const transaction = await db.sequelize.transaction();
+        try {
+            await db.sequelize.query(addRowLockOnFlights(flightId));
+            const flight = await Flight.findByPk(flightId);
+            if (!flight) {
+                throw new Error('Flight not found');
+            }
+            
+            if (dec === true || dec === 'true' || dec === 1 || dec === '1') {
+                await flight.decrement('totalSeats', { by: seats }, { transaction });
+            } else {
+                await flight.increment('totalSeats', { by: seats }, { transaction });
+            }
+            
+            // Reload to get the updated values
+            await flight.reload({ transaction });
+            await transaction.commit();
+            return flight;
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+}
 module.exports=FlightRepository;
